@@ -1,0 +1,106 @@
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_current_active_user
+from app.db.session import get_db
+from app.models.cv import CV
+from app.models.user import User
+from app.schemas.cv import CVResponse
+from app.services.embeddings import delete_vectors, embed_and_store
+from app.services.file_handler import extract_text
+
+router = APIRouter(prefix="/cv")
+
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+ALLOWED_EXTENSIONS = {"pdf", "docx"}
+
+
+@router.post("/upload", response_model=CVResponse, status_code=status.HTTP_201_CREATED)
+async def upload_cv(
+    file: UploadFile,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    filename = file.filename or ""
+    extension = filename.rsplit(".", maxsplit=1)[-1].lower() if "." in filename else ""
+
+    if extension not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"Unsupported file type '.{extension}'. Accepted: .pdf, .docx",
+        )
+
+    file_bytes = await file.read()
+
+    if len(file_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="File size exceeds 10 MB limit.",
+        )
+
+    extracted_text = extract_text(filename, file_bytes)
+
+    cv = CV(
+        user_id=current_user.id,
+        original_filename=filename,
+        extracted_text=extracted_text,
+    )
+    db.add(cv)
+    await db.commit()
+    await db.refresh(cv)
+
+    embed_and_store(
+        text=extracted_text,
+        doc_id=str(cv.id),
+        metadata={"user_id": str(current_user.id), "type": "cv"},
+    )
+
+    return cv
+
+
+@router.get("", response_model=list[CVResponse])
+async def list_cvs(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    result = await db.execute(
+        select(CV).where(CV.user_id == current_user.id).order_by(CV.created_at.desc())
+    )
+    cvs = result.scalars().all()
+    return cvs
+
+
+@router.get("/{cv_id}", response_model=CVResponse)
+async def get_cv(
+    cv_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    cv = await db.get(CV, cv_id)
+    if not cv:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV not found")
+    if cv.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
+    return cv
+
+
+@router.delete("/{cv_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_cv(
+    cv_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    cv = await db.get(CV, cv_id)
+    if not cv:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV not found")
+    if cv.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
+    
+    await db.delete(cv)
+    await db.commit()
+    
+    delete_vectors(str(cv_id))
+    return None
