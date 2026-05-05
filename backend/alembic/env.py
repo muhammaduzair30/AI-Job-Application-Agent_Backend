@@ -15,13 +15,7 @@ from app.models.analysis import AnalysisResult  # noqa: F401
 from app.models.job_application import JobApplication  # noqa: F401
 
 config = context.config
-import socket
 db_url = settings.DATABASE_URL
-if "@db:" in db_url:
-    try:
-        socket.gethostbyname("db")
-    except socket.gaierror:
-        db_url = db_url.replace("@db:", "@localhost:")
 config.set_main_option("sqlalchemy.url", db_url)
 
 if config.config_file_name is not None:
