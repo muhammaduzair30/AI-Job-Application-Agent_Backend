@@ -11,6 +11,7 @@ from app.services.embeddings import embedding_model
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
     google_api_key=settings.GEMINI_API_KEY,
+    max_retries=2,
 )
 
 EMPTY_GAP_ANALYSIS = {
@@ -67,5 +68,13 @@ async def analyse_skill_gap(cv_parsed: dict, jd_text: str) -> dict:
         chain = SKILL_GAP_PROMPT | llm | parser
         result = await chain.ainvoke({"cv_skills": skills_text, "jd_text": jd_text})
         return {**EMPTY_GAP_ANALYSIS, **result}
-    except Exception:
+    except Exception as e:
+        error_msg = str(e)
+        if "RESOURCE_EXHAUSTED" in error_msg or "429" in error_msg:
+            result = EMPTY_GAP_ANALYSIS.copy()
+            result["recommendation_summary"] = (
+                "The AI service is currently busy. We couldn't generate a detailed "
+                "skill gap analysis right now, but your match score is still available based on our local algorithms."
+            )
+            return result
         return EMPTY_GAP_ANALYSIS.copy()

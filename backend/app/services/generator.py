@@ -13,7 +13,15 @@ logger = logging.getLogger(__name__)
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
     google_api_key=settings.GEMINI_API_KEY,
+    max_retries=2,
 )
+
+QUOTA_EXCEEDED_MESSAGE = [
+    {"type": "heading", "content": "AI Service Busy (Rate Limit)"},
+    {"type": "paragraph", "content": "Our AI engine is currently experiencing high demand and has reached its temporary limit. Your request couldn't be processed right now."},
+    {"type": "divider", "content": ""},
+    {"type": "paragraph", "content": "Please wait a moment and try again. We value your career journey and appreciate your patience!"}
+]
 
 str_parser = StrOutputParser()
 
@@ -191,6 +199,11 @@ async def generate_optimised_cv(
         )
         return _extract_json(raw)
     except Exception as e:
+        error_msg = str(e)
+        if "RESOURCE_EXHAUSTED" in error_msg or "429" in error_msg:
+            logger.warning(f"Gemini quota exceeded during CV generation: {e}")
+            return QUOTA_EXCEEDED_MESSAGE
+        
         logger.error(f"Error generating optimised CV: {e}")
         return []
 
@@ -210,5 +223,10 @@ async def generate_cover_letter(
         )
         return _extract_json(raw)
     except Exception as e:
+        error_msg = str(e)
+        if "RESOURCE_EXHAUSTED" in error_msg or "429" in error_msg:
+            logger.warning(f"Gemini quota exceeded during cover letter generation: {e}")
+            return QUOTA_EXCEEDED_MESSAGE
+
         logger.error(f"Error generating cover letter: {e}")
         return []

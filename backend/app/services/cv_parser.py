@@ -7,6 +7,7 @@ from app.config import settings
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
     google_api_key=settings.GEMINI_API_KEY,
+    max_retries=2,
 )
 
 EMPTY_STRUCTURE = {
@@ -49,5 +50,13 @@ async def parse_cv(extracted_text: str) -> dict:
         chain = CV_PARSE_PROMPT | llm | parser
         result = await chain.ainvoke({"cv_text": extracted_text})
         return {**EMPTY_STRUCTURE, **result}
-    except Exception:
+    except Exception as e:
+        error_msg = str(e)
+        if "RESOURCE_EXHAUSTED" in error_msg or "429" in error_msg:
+            result = EMPTY_STRUCTURE.copy()
+            result["summary"] = (
+                "The AI parsing service is currently busy. Basic information might be missing, "
+                "but you can still proceed with the analysis."
+            )
+            return result
         return EMPTY_STRUCTURE.copy()
