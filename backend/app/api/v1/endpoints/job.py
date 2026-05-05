@@ -8,9 +8,21 @@ from app.api.deps import get_current_active_user
 from app.db.session import get_db
 from app.models.job import Job
 from app.models.user import User
-from app.schemas.job import JobCreate, JobResponse
+from app.schemas.job import JobCreate, JobResponse, JobScrapeResponse
+from app.services.scraper import scrape_job_description
 
 router = APIRouter(prefix="/job")
+
+@router.get("/scrape", response_model=JobScrapeResponse)
+async def scrape_job(
+    url: str,
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Scrape a job description from a given URL.
+    """
+    description = await scrape_job_description(url)
+    return {"job_description": description}
 
 @router.post("", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
 async def create_job(
