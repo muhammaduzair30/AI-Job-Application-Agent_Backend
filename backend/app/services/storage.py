@@ -9,7 +9,7 @@ logger = logging.getLogger("aiaa.storage")
 
 # Initialize Supabase client
 supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
-BUCKET_NAME = "cv-uploads"
+BUCKET_NAME = "CV_upload"
 
 def upload_file_to_supabase(file_bytes: bytes, filename: str, user_id: uuid.UUID) -> str:
     """
