@@ -2,6 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_active_user
@@ -45,7 +46,14 @@ async def create_job_application(
     db.add(application)
     await db.commit()
     await db.refresh(application)
-    return application
+    
+    # We need to eagerly load the relations so they show up in the response
+    result = await db.execute(
+        select(JobApplication)
+        .options(joinedload(JobApplication.cv), joinedload(JobApplication.job))
+        .where(JobApplication.id == application.id)
+    )
+    return result.scalar_one()
 
 
 @router.get("", response_model=list[JobApplicationResponse])
@@ -55,6 +63,7 @@ async def list_applications(
 ):
     result = await db.execute(
         select(JobApplication)
+        .options(joinedload(JobApplication.cv), joinedload(JobApplication.job))
         .where(JobApplication.user_id == current_user.id)
         .order_by(JobApplication.created_at.desc())
     )
@@ -67,7 +76,11 @@ async def get_application(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    result = await db.execute(select(JobApplication).where(JobApplication.id == application_id))
+    result = await db.execute(
+        select(JobApplication)
+        .options(joinedload(JobApplication.cv), joinedload(JobApplication.job))
+        .where(JobApplication.id == application_id)
+    )
     application = result.scalar_one_or_none()
     
     if not application:

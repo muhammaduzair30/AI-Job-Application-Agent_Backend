@@ -11,6 +11,7 @@ from app.models.user import User
 from app.schemas.cv import CVResponse
 from app.services.embeddings import delete_vectors, embed_and_store
 from app.services.file_handler import extract_text
+from app.services.storage import upload_file_to_supabase, delete_file_from_supabase, generate_presigned_url
 
 router = APIRouter(prefix="/cv")
 
@@ -42,11 +43,15 @@ async def upload_cv(
         )
 
     extracted_text = extract_text(filename, file_bytes)
+    
+    # Upload to Supabase Storage
+    file_path = upload_file_to_supabase(file_bytes, filename, current_user.id)
 
     cv = CV(
         user_id=current_user.id,
         original_filename=filename,
         extracted_text=extracted_text,
+        file_path=file_path,
     )
     db.add(cv)
     await db.commit()
@@ -87,6 +92,24 @@ async def get_cv(
     return cv
 
 
+@router.get("/{cv_id}/download")
+async def download_cv(
+    cv_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    cv = await db.get(CV, cv_id)
+    if not cv:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="CV not found")
+    if cv.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
+    if not cv.file_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No file associated with this CV")
+        
+    download_url = generate_presigned_url(cv.file_path)
+    return {"download_url": download_url}
+
+
 @router.delete("/{cv_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_cv(
     cv_id: uuid.UUID,
@@ -99,6 +122,10 @@ async def delete_cv(
     if cv.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
     
+    # Delete file from storage
+    if cv.file_path:
+        delete_file_from_supabase(cv.file_path)
+        
     await db.delete(cv)
     await db.commit()
     
