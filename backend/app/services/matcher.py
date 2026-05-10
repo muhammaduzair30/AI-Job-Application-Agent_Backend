@@ -6,7 +6,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.config import settings
-from app.services.embeddings import embedding_model
+from app.services.embeddings import embedding_model, fetch_vector, get_or_create_jd_embedding
 
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
@@ -52,9 +52,20 @@ def _cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
     return dot / (mag_a * mag_b)
 
 
-async def calculate_match_score(cv_text: str, jd_text: str) -> dict:
-    vectors = await embedding_model.aembed_documents([cv_text, jd_text])
-    cv_vector, jd_vector = vectors[0], vectors[1]
+async def calculate_match_score(cv_id: str, cv_text: str, jd_text: str) -> dict:
+    # 1. Fetch CV vector from cache
+    cv_vector = fetch_vector(f"{cv_id}#full")
+    
+    # Graceful fallback: If CV is missing from Pinecone (legacy or background task pending), generate on the fly
+    if not cv_vector:
+        cv_embeddings = await embedding_model.aembed_documents([cv_text])
+        cv_vector = cv_embeddings[0] if cv_embeddings else []
+        
+    # 2. Get JD vector (cached or new)
+    jd_vector = await get_or_create_jd_embedding(jd_text)
+    
+    if not cv_vector or not jd_vector:
+        return {"match_score": 0, "similarity": 0.0}
 
     similarity = _cosine_similarity(cv_vector, jd_vector)
     match_score = int(round(max(0.0, min(1.0, similarity)) * 100))

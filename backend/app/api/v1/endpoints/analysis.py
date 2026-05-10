@@ -39,7 +39,7 @@ async def run_analysis(
         )
 
     cv_parsed = await parse_cv(cv.extracted_text)
-    match_result = await calculate_match_score(cv.extracted_text, payload.jd_text)
+    match_result = await calculate_match_score(str(cv.id), cv.extracted_text, payload.jd_text)
     skill_gap = await analyse_skill_gap(cv_parsed, payload.jd_text)
     optimised_cv = await generate_optimised_cv(cv_parsed, payload.jd_text, skill_gap)
     cover_letter = await generate_cover_letter(cv_parsed, payload.jd_text, {

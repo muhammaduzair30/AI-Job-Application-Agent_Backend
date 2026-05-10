@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +22,7 @@ ALLOWED_EXTENSIONS = {"pdf", "docx"}
 @router.post("/upload", response_model=CVResponse, status_code=status.HTTP_201_CREATED)
 async def upload_cv(
     file: UploadFile,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
@@ -57,7 +58,8 @@ async def upload_cv(
     await db.commit()
     await db.refresh(cv)
 
-    embed_and_store(
+    background_tasks.add_task(
+        embed_and_store,
         text=extracted_text,
         doc_id=str(cv.id),
         metadata={"user_id": str(current_user.id), "type": "cv"},
@@ -113,6 +115,7 @@ async def download_cv(
 @router.delete("/{cv_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_cv(
     cv_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
@@ -129,5 +132,5 @@ async def delete_cv(
     await db.delete(cv)
     await db.commit()
     
-    delete_vectors(str(cv_id))
+    background_tasks.add_task(delete_vectors, str(cv_id))
     return None
