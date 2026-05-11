@@ -47,7 +47,6 @@ async def create_job_application(
     await db.commit()
     await db.refresh(application)
     
-    # We need to eagerly load the relations so they show up in the response
     result = await db.execute(
         select(JobApplication)
         .options(joinedload(JobApplication.cv), joinedload(JobApplication.job))
