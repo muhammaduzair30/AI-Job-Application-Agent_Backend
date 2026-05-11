@@ -35,9 +35,9 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[],
-    allow_origin_regex=r"https://.*\.onrender\.com|https://.*\.github\.io|http://localhost(:\d+)?",
+    allow_origin_regex=r"https://.*\.onrender\.com|https://.*\.github\.io|http://localhost(:\d+)?|http://127\.0\.0\.1(:\d+)?",
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["*"],
 )
 
@@ -60,9 +60,17 @@ async def request_logging_middleware(request: Request, call_next):
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error("Unhandled error on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+    
+    # Extract origin for CORS header in error response
+    origin = request.headers.get("origin", "*")
+    headers = {"Access-Control-Allow-Origin": origin} if origin else {}
+    if origin != "*":
+        headers["Access-Control-Allow-Credentials"] = "true"
+        
     return JSONResponse(
         status_code=500,
         content={"detail": "An internal error occurred. Please try again later."},
+        headers=headers,
     )
 
 

@@ -116,8 +116,15 @@ async def update_application(
         application.applied_date = update_in.applied_date
         
     await db.commit()
-    await db.refresh(application)
-    return application
+
+    # Re-fetch with eagerly loaded relations so the response serializer
+    # doesn't trigger a lazy-load on the async session (which would blow up).
+    result = await db.execute(
+        select(JobApplication)
+        .options(joinedload(JobApplication.cv), joinedload(JobApplication.job))
+        .where(JobApplication.id == application.id)
+    )
+    return result.scalar_one()
 
 
 @router.delete("/{application_id}", status_code=status.HTTP_204_NO_CONTENT)
