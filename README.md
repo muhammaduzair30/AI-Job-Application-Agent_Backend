@@ -62,6 +62,7 @@ flowchart TD
 |---|---|
 | **Framework** | FastAPI (Python 3.10+) |
 | **Generative AI** | Google Gemini (Gemini 2.5 Flash) |
+| **AI Orchestration** | LangChain (Prompt Chains & Output Parsing) |
 | **Vector Database** | Pinecone |
 | **Embeddings** | Google Generative AI Embeddings |
 | **Database** | PostgreSQL + SQLAlchemy (Async) |
