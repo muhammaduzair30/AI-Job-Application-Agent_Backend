@@ -20,6 +20,9 @@
 
 AIAA bridges the gap between raw document data and intelligent career insights using a multi-stage AI pipeline.
 
+<details>
+<summary><b>Click to view System Flow Diagram</b></summary>
+
 ```mermaid
 flowchart TD
     %% Define styles
@@ -41,6 +44,8 @@ flowchart TD
         U1 --> U2 --> U3 --> U4 --> U5 --> U6 --> U7
     end
 ```
+
+</details>
 
 ### Technical Workflow
 1.  **Ingestion**: Document text is extracted and normalized into structured JSON.
