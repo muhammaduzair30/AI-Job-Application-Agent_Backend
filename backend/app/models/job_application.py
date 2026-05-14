@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, backref
 
 from app.db.base import Base
 
@@ -36,7 +36,7 @@ class JobApplication(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
-    user = relationship("User", backref="job_applications")
-    cv = relationship("CV", backref="job_applications")
-    job = relationship("Job", backref="job_applications")
+    user = relationship("User", backref=backref("job_applications", cascade="all, delete-orphan"))
+    cv = relationship("CV", backref=backref("job_applications", cascade="all, delete-orphan"))
+    job = relationship("Job", backref=backref("job_applications", cascade="all, delete-orphan"))
     analysis = relationship("AnalysisResult", backref="job_applications")
