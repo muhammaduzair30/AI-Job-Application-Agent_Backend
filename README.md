@@ -10,6 +10,7 @@
 *   **Asynchronous AI Pipeline** — Non-blocking document processing using FastAPI `BackgroundTasks` for seamless user experiences.
 *   **Vector Infrastructure** — Integrated with **Pinecone** for high-speed vector storage and SHA-256 hashed caching for job description embeddings.
 *   **Intelligent Document Parsing** — Automated extraction and structured normalization of complex CV/Resume formats into actionable JSON entities.
+*   **Resilient Job Scraper** — Advanced extraction architecture using `trafilatura` and `curl_cffi` to parse job descriptions directly from URLs, with graceful fallbacks for bot-protected platforms (e.g., LinkedIn).
 *   **Enterprise-Grade Security** — Robust JWT-based authentication system featuring a dual Access and Refresh token architecture.
 *   **Cloud Document Management** — Secure, persistent storage for candidate documents integrated with Supabase/PostgreSQL.
 
@@ -95,12 +96,14 @@ PINECONE_API_KEY="your_pinecone_api_key"
 PINECONE_INDEX_NAME="aiaa-index"
 ```
 
-### Deployment (Docker)
+### Deployment (Docker & Cloud)
 
-The fastest way to deploy the production stack:
+Since AIAA is deployed on **Render**, you can use the provided `render.yaml` for infrastructure-as-code deployment, or build the Docker image manually using the `Dockerfile` in the `backend/` directory:
 
 ```bash
-docker-compose up --build -d
+cd backend
+docker build -t aiaa-backend .
+docker run -p 8000:8000 --env-file .env aiaa-backend
 ```
 
 ### Manual Development Setup
