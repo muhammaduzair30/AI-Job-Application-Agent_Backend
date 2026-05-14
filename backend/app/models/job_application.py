@@ -17,8 +17,8 @@ class JobApplication(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
-    cv_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("cvs.id"), nullable=False
+    cv_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("cvs.id"), nullable=True
     )
     job_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("jobs.id"), nullable=False
@@ -37,6 +37,6 @@ class JobApplication(Base):
     )
 
     user = relationship("User", backref=backref("job_applications", cascade="all, delete-orphan"))
-    cv = relationship("CV", backref=backref("job_applications", cascade="all, delete-orphan"))
+    cv = relationship("CV", backref="job_applications")
     job = relationship("Job", backref=backref("job_applications", cascade="all, delete-orphan"))
     analysis = relationship("AnalysisResult", backref="job_applications")

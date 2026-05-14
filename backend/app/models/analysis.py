@@ -18,8 +18,8 @@ class AnalysisResult(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
-    cv_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("cvs.id"), nullable=False
+    cv_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("cvs.id"), nullable=True
     )
     job_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("jobs.id"), nullable=True
@@ -36,5 +36,5 @@ class AnalysisResult(Base):
     )
 
     user = relationship("User", backref=backref("analyses", cascade="all, delete-orphan"))
-    cv = relationship("CV", backref=backref("analyses", cascade="all, delete-orphan"))
+    cv = relationship("CV", backref="analyses")
     job = relationship("Job", backref=backref("analyses", cascade="all, delete-orphan"))
