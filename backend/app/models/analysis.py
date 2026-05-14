@@ -4,7 +4,7 @@ from typing import Any
 
 from sqlalchemy import DateTime, ForeignKey, Integer, JSON, Text, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, backref
 
 from app.db.base import Base
 
@@ -35,6 +35,6 @@ class AnalysisResult(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
-    user = relationship("User", backref="analyses")
-    cv = relationship("CV", backref="analyses")
-    job = relationship("Job", backref="analyses")
+    user = relationship("User", backref=backref("analyses", cascade="all, delete-orphan"))
+    cv = relationship("CV", backref=backref("analyses", cascade="all, delete-orphan"))
+    job = relationship("Job", backref=backref("analyses", cascade="all, delete-orphan"))
