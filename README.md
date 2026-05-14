@@ -62,7 +62,7 @@ flowchart TD
 | **Database** | PostgreSQL + SQLAlchemy (Async) |
 | **Cloud Storage** | Supabase Storage |
 | **Migrations** | Alembic |
-| **Containerization** | Docker & Docker Compose |
+| **Infrastructure** | Docker & Render (IaC) |
 
 ---
 
@@ -127,10 +127,12 @@ docker run -p 8000:8000 --env-file .env aiaa-backend
 
 ## 📚 API Documentation
 
-AIAA exposes a fully documented RESTful API with automated schema generation:
+AIAA leverages FastAPI's built-in OpenAPI integration to provide auto-generated, interactive API documentation.
 
-*   **Interactive Swagger UI**: `http://localhost:8000/docs`
-*   **Standard ReDoc**: `http://localhost:8000/redoc`
+*   **Local Environment**: 
+    *   Swagger UI: `http://localhost:8000/docs`
+    *   ReDoc: `http://localhost:8000/redoc`
+*   **Production Environment**: Accessible via the `/docs` endpoint on the live Render URL.
 
 ---
 
@@ -143,6 +145,8 @@ app/
 ├── db/           # Session Management & Migrations
 ├── models/       # SQLAlchemy Domain Models
 ├── schemas/      # Pydantic Data Validation
-└── services/     # Core Business Logic & AI Pipelines
+├── services/     # Core Business Logic & AI Pipelines
+├── config.py     # Environment Variable Management
+└── main.py       # FastAPI Application Entry Point
 ```
 
